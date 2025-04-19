@@ -53,8 +53,6 @@ export function ResultDisplay({ result, onReset }: ResultDisplayProps) {
           <div className="flex items-center p-3 bg-blue-50 rounded-lg">
             <Info size={20} className="text-blue-500 mr-2 flex-shrink-0" />
             <p className="text-sm text-blue-700">
-              This is only a preliminary analysis and should not replace professional medical advice. 
-              Please consult with a doctor for proper diagnosis.
             </p>
           </div>
         </div>
@@ -64,8 +62,7 @@ export function ResultDisplay({ result, onReset }: ResultDisplayProps) {
         <Button 
           onClick={onReset} 
           variant="outline" 
-          className="border-blue-300 text-blue-700 hover:bg-blue-50"
-        >
+          className="border-blue-300 text-blue-700 hover:bg-blue-50">
           Perform Another Analysis
         </Button>
       </CardFooter>
