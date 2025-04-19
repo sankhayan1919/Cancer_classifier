@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Add this import
 import numpy as np
 import pandas as pd
 import sklearn.datasets
@@ -8,6 +9,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend-backend communication
 
 # Load and prepare dataset
 ds = sklearn.datasets.load_breast_cancer()
@@ -39,24 +41,39 @@ model.fit(x_train_std, y_train, validation_data=(x_test_std, y_test), epochs=10)
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Get input features from the request
         data = request.json
-        input_data = np.array(data['features']).reshape(1, -1)
+        
+        # Convert input data to numpy array
+        input_features = [
+            data['meanRadius'], data['meanTexture'], data['meanPerimeter'], 
+            data['meanArea'], data['meanSmoothness'], data['meanCompactness'],
+            data['meanConcavity'], data['meanConcavePoints'], data['meanSymmetry'],
+            data['meanFractalDimension'], data['radiusError'], data['textureError'],
+            data['perimeterError'], data['areaError'], data['smoothnessError'],
+            data['compactnessError'], data['concavityError'], data['concavePointsError'],
+            data['symmetryError'], data['fractalDimensionError'], data['worstRadius'],
+            data['worstTexture'], data['worstPerimeter'], data['worstArea'],
+            data['worstSmoothness'], data['worstCompactness'], data['worstConcavity'],
+            data['worstConcavePoints'], data['worstSymmetry'], data['worstFractalDimension']
+        ]
+        
+        input_array = np.array(input_features).reshape(1, -1)
+        input_data_std = scaler.transform(input_array)
 
-        # Standardize the input data
-        input_data_std = scaler.transform(input_data)
-
-        # Make a prediction
         prediction = model.predict(input_data_std)
+        confidence = float(np.max(prediction))
         prediction_label = np.argmax(prediction)
 
-        # Return the prediction result
-        if prediction_label == 1:
-            return jsonify({'prediction': 'Benign'})
-        else:
-            return jsonify({'prediction': 'Malignant'})
+        return jsonify({
+            'prediction': 'benign' if prediction_label == 1 else 'malignant',
+            'confidence': confidence
+        })
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to process the request'
+        }), 400
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
