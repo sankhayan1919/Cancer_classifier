@@ -38,9 +38,9 @@ const Index = () => {
             <p className="text-center text-slate-600 text-lg">
               Enter diagnostic measurements to receive a preliminary assessment of breast cancer likelihood.
             </p>
-            <p className="text-center text-red-500 font-medium mt-2 text-sm">
+            {/* <p className="text-center text-red-500 font-medium mt-2 text-sm">
               This tool is for educational purposes only and is not a substitute for professional medical advice.
-            </p>
+            </p> */}
           </div>
         </div>
       </header>
@@ -91,7 +91,7 @@ const Index = () => {
         </div>
       </main>
       
-      <footer className="bg-slate-800 text-white py-12 mt-20">
+      {/* <footer className="bg-slate-800 text-white py-12 mt-20">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="grid md:grid-cols-2 gap-8">
             <div>
@@ -115,7 +115,7 @@ const Index = () => {
             </p>
           </div>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 };
