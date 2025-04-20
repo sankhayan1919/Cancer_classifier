@@ -1,79 +1,66 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS  # Add this import
+import gradio as gr
 import numpy as np
-import pandas as pd
-import sklearn.datasets
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-import tensorflow as tf
-from tensorflow import keras
+import joblib
+from tensorflow.keras.models import load_model
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend-backend communication
+# Load the Keras model (.h5)
+model = load_model("breast_cancer_model.h5")
 
-# Load and prepare dataset
-ds = sklearn.datasets.load_breast_cancer()
-data_frame = pd.DataFrame(ds.data, columns=ds.feature_names)
-data_frame['label'] = ds.target
+# Load the saved scaler (fitted on x_train)
+scaler = joblib.load("scaler.pkl")
 
-x = data_frame.drop(columns='label', axis=1)
-y = data_frame['label']
+# Define prediction function
+def predict(
+    meanRadius, meanTexture, meanPerimeter, meanArea, meanSmoothness,
+    meanCompactness, meanConcavity, meanConcavePoints, meanSymmetry,
+    meanFractalDimension, radiusError, textureError, perimeterError,
+    areaError, smoothnessError, compactnessError, concavityError,
+    concavePointsError, symmetryError, fractalDimensionError, worstRadius,
+    worstTexture, worstPerimeter, worstArea, worstSmoothness,
+    worstCompactness, worstConcavity, worstConcavePoints, worstSymmetry,
+    worstFractalDimension
+):
+    input_data = np.array([[
+        meanRadius, meanTexture, meanPerimeter, meanArea, meanSmoothness,
+        meanCompactness, meanConcavity, meanConcavePoints, meanSymmetry,
+        meanFractalDimension, radiusError, textureError, perimeterError,
+        areaError, smoothnessError, compactnessError, concavityError,
+        concavePointsError, symmetryError, fractalDimensionError, worstRadius,
+        worstTexture, worstPerimeter, worstArea, worstSmoothness,
+        worstCompactness, worstConcavity, worstConcavePoints, worstSymmetry,
+        worstFractalDimension
+    ]])
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=2)
+    input_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_scaled)[0][0]  # Assuming binary classification (output between 0 and 1)
+    
+    if prediction > 0.5:
+        return f"Malignant (Confidence: {prediction:.2f})"
+    else:
+        return f"Benign (Confidence: {1 - prediction:.2f})"
 
-# Standardization
-scaler = StandardScaler()
-x_train_std = scaler.fit_transform(x_train)
-x_test_std = scaler.transform(x_test)
+# Feature labels
+features = [
+    "meanRadius", "meanTexture", "meanPerimeter", "meanArea", "meanSmoothness",
+    "meanCompactness", "meanConcavity", "meanConcavePoints", "meanSymmetry",
+    "meanFractalDimension", "radiusError", "textureError", "perimeterError",
+    "areaError", "smoothnessError", "compactnessError", "concavityError",
+    "concavePointsError", "symmetryError", "fractalDimensionError", "worstRadius",
+    "worstTexture", "worstPerimeter", "worstArea", "worstSmoothness",
+    "worstCompactness", "worstConcavity", "worstConcavePoints", "worstSymmetry",
+    "worstFractalDimension"
+]
 
-# Build and train the model
-tf.random.set_seed(3)
-model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(30,)),
-    keras.layers.Dense(20, activation='relu'),
-    keras.layers.Dense(2, activation='sigmoid')
-])
+# Input fields
+inputs = [gr.Number(label=feature) for feature in features]
 
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-model.fit(x_train_std, y_train, validation_data=(x_test_std, y_test), epochs=10)
+# Create and launch the interface
+app = gr.Interface(
+    fn=predict,
+    inputs=inputs,
+    outputs="text",
+    title="Breast Cancer Prediction App",
+    description="Enter the 30 input values to predict whether the tumor is Malignant or Benign using a deep learning model."
+)
 
-# Define prediction endpoint
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        data = request.json
-        
-        # Convert input data to numpy array
-        input_features = [
-            data['meanRadius'], data['meanTexture'], data['meanPerimeter'], 
-            data['meanArea'], data['meanSmoothness'], data['meanCompactness'],
-            data['meanConcavity'], data['meanConcavePoints'], data['meanSymmetry'],
-            data['meanFractalDimension'], data['radiusError'], data['textureError'],
-            data['perimeterError'], data['areaError'], data['smoothnessError'],
-            data['compactnessError'], data['concavityError'], data['concavePointsError'],
-            data['symmetryError'], data['fractalDimensionError'], data['worstRadius'],
-            data['worstTexture'], data['worstPerimeter'], data['worstArea'],
-            data['worstSmoothness'], data['worstCompactness'], data['worstConcavity'],
-            data['worstConcavePoints'], data['worstSymmetry'], data['worstFractalDimension']
-        ]
-        
-        input_array = np.array(input_features).reshape(1, -1)
-        input_data_std = scaler.transform(input_array)
-
-        prediction = model.predict(input_data_std)
-        confidence = float(np.max(prediction))
-        prediction_label = np.argmax(prediction)
-
-        return jsonify({
-            'prediction': 'benign' if prediction_label == 1 else 'malignant',
-            'confidence': confidence
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'message': 'Failed to process the request'
-        }), 400
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+app.launch()
