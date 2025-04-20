@@ -1,3 +1,4 @@
+import requests
 import gradio as gr
 import numpy as np
 import joblib
@@ -20,24 +21,48 @@ def predict(
     worstCompactness, worstConcavity, worstConcavePoints, worstSymmetry,
     worstFractalDimension
 ):
-    input_data = np.array([[
-        meanRadius, meanTexture, meanPerimeter, meanArea, meanSmoothness,
-        meanCompactness, meanConcavity, meanConcavePoints, meanSymmetry,
-        meanFractalDimension, radiusError, textureError, perimeterError,
-        areaError, smoothnessError, compactnessError, concavityError,
-        concavePointsError, symmetryError, fractalDimensionError, worstRadius,
-        worstTexture, worstPerimeter, worstArea, worstSmoothness,
-        worstCompactness, worstConcavity, worstConcavePoints, worstSymmetry,
-        worstFractalDimension
-    ]])
-
-    input_scaled = scaler.transform(input_data)
-    prediction = model.predict(input_scaled)[0][0]  # Assuming binary classification (output between 0 and 1)
+    input_data = {
+        "meanRadius": meanRadius,
+        "meanTexture": meanTexture,
+        "meanPerimeter": meanPerimeter,
+        "meanArea": meanArea,
+        "meanSmoothness": meanSmoothness,
+        "meanCompactness": meanCompactness,
+        "meanConcavity": meanConcavity,
+        "meanConcavePoints": meanConcavePoints,
+        "meanSymmetry": meanSymmetry,
+        "meanFractalDimension": meanFractalDimension,
+        "radiusError": radiusError,
+        "textureError": textureError,
+        "perimeterError": perimeterError,
+        "areaError": areaError,
+        "smoothnessError": smoothnessError,
+        "compactnessError": compactnessError,
+        "concavityError": concavityError,
+        "concavePointsError": concavePointsError,
+        "symmetryError": symmetryError,
+        "fractalDimensionError": fractalDimensionError,
+        "worstRadius": worstRadius,
+        "worstTexture": worstTexture,
+        "worstPerimeter": worstPerimeter,
+        "worstArea": worstArea,
+        "worstSmoothness": worstSmoothness,
+        "worstCompactness": worstCompactness,
+        "worstConcavity": worstConcavity,
+        "worstConcavePoints": worstConcavePoints,
+        "worstSymmetry": worstSymmetry,
+        "worstFractalDimension": worstFractalDimension
+    }
     
-    if prediction > 0.5:
-        return f"Malignant (Confidence: {prediction:.2f})"
-    else:
-        return f"Benign (Confidence: {1 - prediction:.2f})"
+    try:
+        response = requests.post(
+            "https://sreecode09-cancer-detection.hf.space/predict",
+            json=input_data
+        )
+        response.raise_for_status()
+        return response.json()['result']
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 # Feature labels
 features = [
@@ -60,7 +85,7 @@ app = gr.Interface(
     inputs=inputs,
     outputs="text",
     title="Breast Cancer Prediction App",
-    description="Enter the 30 input values to predict whether the tumor is Malignant or Benign using a deep learning model."
+    description="Enter the 30 input values to predict whether the tumor is Malignant or Benign."
 )
 
 app.launch()

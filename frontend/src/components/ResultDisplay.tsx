@@ -1,21 +1,74 @@
 
 import { CheckCircle, AlertCircle, Info } from "lucide-react";
-import { CancerDetectionResult } from "@/components/BreastCancerForm";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+
+interface CancerDetectionResult {
+  prediction: 'benign' | 'malignant';
+  confidence: number;
+}
 
 interface ResultDisplayProps {
-  result: CancerDetectionResult | null;
+  formData: Record<string, number>;
   onReset: () => void;
 }
 
-export function ResultDisplay({ result, onReset }: ResultDisplayProps) {
-  if (!result) return null;
+export function ResultDisplay({ formData, onReset }: ResultDisplayProps) {
+  const [result, setResult] = useState<CancerDetectionResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { prediction, confidence } = result;
-  const isMalignant = prediction === "malignant";
-  
+  const analyzeData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('https://sreecode09-cancer-detection.hf.space/predict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (!response.ok) throw new Error('Prediction failed');
+      
+      const data = await response.json();
+      setResult({
+        prediction: data.result.includes('Malignant') ? 'malignant' : 'benign',
+        confidence: parseFloat(data.result.match(/Confidence: ([\d.]+)/)?.[1] || '0')
+      });
+    } catch (err) {
+      setError("Failed to analyze data. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!result) {
+    return (
+      <Card className="w-full max-w-lg mx-auto border-2 shadow-lg border-gray-300">
+        <CardHeader className="bg-gray-50 rounded-t-lg">
+          <CardTitle className="text-center text-2xl">Analyze Cancer Data</CardTitle>
+          <CardDescription className="text-center text-base">
+            {error ? <span className="text-red-500">{error}</span> : "Click to analyze"}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex justify-center pb-6">
+          <Button 
+            onClick={analyzeData} 
+            disabled={isLoading}
+            className="bg-blue-600 text-white hover:bg-blue-700"
+          >
+            {isLoading ? "Analyzing..." : "Analyze Data"}
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  const isMalignant = result.prediction === "malignant";
   return (
     <Card className={`w-full max-w-lg mx-auto border-2 shadow-lg ${isMalignant ? 'border-red-300' : 'border-green-300'}`}>
       <CardHeader className={`${isMalignant ? 'bg-red-50' : 'bg-green-50'} rounded-t-lg`}>
@@ -41,10 +94,10 @@ export function ResultDisplay({ result, onReset }: ResultDisplayProps) {
           <div>
             <div className="flex justify-between mb-1">
               <span className="text-sm font-medium">Confidence Level</span>
-              <span className="text-sm font-medium">{Math.round(confidence * 100)}%</span>
+              <span className="text-sm font-medium">{Math.round(result.confidence * 100)}%</span>
             </div>
             <Progress 
-              value={confidence * 100} 
+              value={result.confidence * 100} 
               className={`h-3 ${isMalignant ? 'bg-red-100' : 'bg-green-100'}`}
               indicatorClassName={isMalignant ? 'bg-red-500' : 'bg-green-500'}
             />
@@ -62,7 +115,8 @@ export function ResultDisplay({ result, onReset }: ResultDisplayProps) {
         <Button 
           onClick={onReset} 
           variant="outline" 
-          className="border-blue-300 text-blue-700 hover:bg-blue-50">
+          className="border-blue-300 text-blue-700 hover:bg-blue-50"
+        >
           Perform Another Analysis
         </Button>
       </CardFooter>
