@@ -22,7 +22,6 @@ npm install
 ```bash
 cd c:\Users\Lenovo\Desktop\Cancer_classifier\backend
 ```
-
 ### Frontend Setup
 1. Navigate to frontend directory:
 ```bash

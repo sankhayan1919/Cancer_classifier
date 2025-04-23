@@ -3,6 +3,7 @@ import gradio as gr
 import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
+import os
 
 # Load the Keras model (.h5)
 model = load_model("breast_cancer_model.h5")
@@ -88,4 +89,6 @@ app = gr.Interface(
     description="Enter the 30 input values to predict whether the tumor is Malignant or Benign."
 )
 
-app.launch()
+if __name__ == '__main__':
+    port = int(os.environ.get("API_PORT", 5000))  # Changed from PORT to API_PORT
+    app.launch(server_port=port)  # For Gradio interface
