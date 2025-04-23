@@ -9,8 +9,9 @@ A machine learning-based application that predicts whether breast tumors are mal
 - Real-time results with confidence scores
 
 ## Installation
-pip install -r requirements.txt
-npm install
+pip install -r requirements.txt(python)
+
+npm install(node)
 
 ### Prerequisites
 - Python 3.8+
